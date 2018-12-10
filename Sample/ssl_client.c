@@ -19,12 +19,13 @@
 **  Mbed MQTT Client Library with C
 **************************************************************/
 /** 
- * @example     mini_client.c
- * @brief       A Simple Minimal MQTT Client.
+ * @example     ssl_client.c
+ * @brief       A Sample shows how to use MQC library over TLS/SSL
+ * @note        This sample program need Mbedtls library (https://tls.mbed.org/)
  * @author      zhaozhenge@outlook.com
  *
  * @version     00.00.01 
- *              - 2018/12/03 : zhaozhenge@outlook.com 
+ *              - 2018/12/10 : zhaozhenge@outlook.com 
  *                  -# New
  */
  
@@ -36,14 +37,7 @@
 **  Include
 **************************************************************/
 
-#if defined(PLATFORM_LINUX)
-#include "../Platform/Linux/wrapper.h"
-#elif defined(PLATFORM_WINDOWS)
-#include "../Platform/Windows/wrapper.h"
-#else
-#include "../Platform/Lwip/wrapper.h"
-#endif
-
+#include "../Platform/Mbedtls/wrapper_ssl.h"
 #include "MQC_api.h"
 
 /**************************************************************
@@ -51,7 +45,7 @@
 **************************************************************/
 
 #define D_MQC_MQTT_HOST      "test.mosquitto.org"   /*!< MQTT test Server hostname */
-#define D_MQC_MQTT_PORT      (1883)                 /*!< MQTT test Server port */
+#define D_MQC_MQTT_PORT      (8884)                 /*!< MQTT test Server port */
 
 /**************************************************************
 **  Structure
@@ -60,12 +54,13 @@
 /**
  * @brief      Custom User Data
  * @author     zhaozhenge@outlook.com
- * @date       2018/12/03
+ * @date       2018/12/10
  */
 typedef struct _S_USER_DATA
 {
     S_MQC_SESSION_HANDLE*   Handler;
     S_PLATFORM_DATA         Platform;
+    S_SSL_DATA              Ssl;
     bool                    Running;
 }S_USER_DATA;
 
@@ -81,6 +76,37 @@ static uint8_t const*           ClientId        =   (uint8_t*)"b1bfee9163f44141b
 /**************************************************************
 **  Function
 **************************************************************/
+
+/** 
+ * @brief               SSL Session Data Send callback function
+ * @param[in,out]       Ctx                 User Context
+ * @param[in]           Data                Data want to write via network
+ * @param[in]           Size                Size of the Data
+ * @retval              0                   success
+ * @retval              -1                  fail
+ * @author              zhaozhenge@outlook.com
+ * @date                2018/12/10
+ */
+int32_t WriteSsl_callback(void* Ctx, const uint8_t* Data, size_t Size)
+{
+    S_USER_DATA*    CustomData  =   (S_USER_DATA*)Ctx;
+    uint8_t*        DataStr     =   (uint8_t*)Data;
+    int32_t         Err         =   0;
+    
+    while(Size)
+    {
+        Err = sslwrite_wrapper( &(CustomData->Ssl), DataStr, Size);
+        if(0 > Err)
+        {
+            D_MQC_PRINT( " failed\n  ! send() returned %d\n\n", Err );
+            return (-1);
+        }
+        Size    =   Size - Err;
+        DataStr =   DataStr + Err;
+    }
+    
+    return 0;
+}
 
 /** 
  * @brief               Topic subscribe callback function
@@ -170,37 +196,6 @@ int32_t PublishResponseFunc(E_MQC_BEHAVIOR_RESULT Result, S_MQC_MESSAGE_INFO* Me
 }
 
 /** 
- * @brief               TCP/IP Data Send callback function
- * @param[in,out]       Ctx                 User Context
- * @param[in]           Data                Data want to write via network
- * @param[in]           Size                Size of the Data
- * @retval              0                   success
- * @retval              -1                  fail
- * @author              zhaozhenge@outlook.com
- * @date                2018/11/08
- */
-int32_t WriteTcp_callback(void* Ctx, const uint8_t* Data, size_t Size)
-{
-    S_USER_DATA*    CustomData  =   (S_USER_DATA*)Ctx;
-    uint8_t*        DataStr     =   (uint8_t*)Data;
-    int32_t         Err         =   0;
-    
-    while(Size)
-    {
-        Err = tcpwrite_wrapper( &(CustomData->Platform), DataStr, Size);
-        if(0 > Err)
-        {
-            D_MQC_PRINT( " failed\n  ! send() returned %d\n\n", Err );
-            return (-1);
-        }
-        Size    =   Size - Err;
-        DataStr =   DataStr + Err;
-    }
-    
-    return 0;
-}
-
-/** 
  * @brief               Open/Reset callback function
  * @param[in,out]       Ctx                 User Context for callback
  * @param[in]           Result              Result of the Connect Behavior
@@ -240,11 +235,21 @@ int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_
                 Ret = -1;
                 break;
             }
+            /* SSL Session Close */
+            ssl_wrapper_deinit(&(CustomData->Ssl));
             /* Network close */
             network_close_wrapper(&(CustomData->Platform));
+            
             if( network_open_wrapper(&(CustomData->Platform)) )
             {
                 D_MQC_PRINT( " failed\n  ! network_open_wrapper() \n\n");
+                CustomData->Running = false;
+                Ret = -1;
+                break;
+            }
+            if(ssl_wrapper_init(&(CustomData->Ssl), &(CustomData->Platform)))
+            {
+                D_MQC_PRINT( " failed\n  ! ssl_wrapper_init() \n\n");
                 CustomData->Running = false;
                 Ret = -1;
                 break;
@@ -344,21 +349,22 @@ int32_t ReadNotify_callback(void* Ctx, E_MQC_MSG_TYPE Type, S_MQC_MESSAGE_INFO* 
     return 0;
 }
 
+
 /** 
  * @brief               main function
  * @author              zhaozhenge@outlook.com
- * @date                2018/12/03
+ * @date                2018/11/08
  */
 #if defined(PLATFORM_LINUX)
 int main( int argc, char *argv[] )
 #elif defined(PLATFORM_WINDOWS)
 int main( int argc, char *argv[] )
 #else
-int MqttTask( void* Input )
+int MQTTTask( void* Input )
 #endif
 {
-    int32_t     Err         =   D_MQC_RET_OK;
-    size_t      Size        =   0;
+    int32_t     Err     =   D_MQC_RET_OK;
+    size_t      Size    =   0;
     uint8_t     Data[64];
     
     UsrData.Platform.DstAddress  =   (char*)D_MQC_MQTT_HOST;
@@ -379,6 +385,12 @@ int MqttTask( void* Input )
     UsrData.Handler =   &MQCHandler;
     UsrData.Running =   false;
     
+    if(ssl_wrapper_init(&(UsrData.Ssl), &(UsrData.Platform)))
+    {
+        wrapper_deinit(&(UsrData.Platform));
+        return (-1);   
+    }
+    
     MQCHandler.UsrCtx                       =   &UsrData;
     MQCHandler.CleanSession                 =   true;
     MQCHandler.WillMessage.Enable           =   false;
@@ -393,10 +405,10 @@ int MqttTask( void* Input )
     MQCHandler.FreeFunc                     =   free_wrapper;
     MQCHandler.LockFunc                     =   NULL;
     MQCHandler.UnlockFunc                   =   NULL;
-    MQCHandler.WriteFuncCB                  =   WriteTcp_callback;
+    MQCHandler.WriteFuncCB                  =   WriteSsl_callback;
     MQCHandler.ReadFuncCB                   =   ReadNotify_callback;
     MQCHandler.OpenResetFuncCB              =   OpenResetNotify_callback;
-
+    
     Err = MQC_Start(&MQCHandler, systick_wrapper());
     if( D_MQC_RET_OK != Err)
     {
@@ -417,27 +429,22 @@ int MqttTask( void* Input )
     
     while(UsrData.Running)
     {
-        Err = tcpcheck_wrapper(&(UsrData.Platform), 100);
-        if(0 > Err)
+        do
         {
-            UsrData.Running = false;
-            break;
-        }
-        else if(0 == Err)
-        {
-            MQC_Continue(&MQCHandler, systick_wrapper());
-        }
-        else
-        {
-            do
+            Size = sizeof(Data);
+            Err = sslread_wrapper(&(UsrData.Ssl), Data, sizeof(Data), 100);
+            if(0 > Err)
             {
-                Err = tcpread_wrapper(&(UsrData.Platform), Data, sizeof(Data));
-                if(0 >= Err)
-                {
-                    D_MQC_PRINT( " failed\n  ! tcpread_wrapper() returned %d\n\n", Err );
-                    UsrData.Running = false;
-                    break;
-                }
+                UsrData.Running = false;
+                break;
+            }
+            else if(0 == Err)
+            {
+                MQC_Continue(&MQCHandler, systick_wrapper());
+                break;
+            }
+            else
+            {
                 Size = Err;
                 Err = MQC_Read(&MQCHandler, Data, Err);
                 if(D_MQC_RET_OK != Err)
@@ -446,8 +453,8 @@ int MqttTask( void* Input )
                     UsrData.Running = false;
                     break;
                 }
-            }while( sizeof(Data) == Size );
-        }
+            }
+        }while( sizeof(Data) == Size );
     }
     
     D_MQC_PRINT( " Program End with %d returned\n\n", Err );
@@ -458,6 +465,7 @@ int MqttTask( void* Input )
         D_MQC_PRINT( " failed\n  ! MQC_Stop() returned %d\n\n", Err );
     }
 
+    ssl_wrapper_deinit(&(UsrData.Ssl));
     wrapper_deinit(&(UsrData.Platform));
     
     return Err;

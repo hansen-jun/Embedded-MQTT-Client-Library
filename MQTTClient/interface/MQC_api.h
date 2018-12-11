@@ -128,7 +128,9 @@ typedef enum _E_MQC_BEHAVIOR_RESULT
     E_MQC_BEHAVIOR_COMPLETE = 0x00,                 /*!< Operational behavior complete */
     E_MQC_BEHAVIOR_TIMEOUT,                         /*!< Operational behavior timeout */
     E_MQC_BEHAVIOR_CANCEL,                          /*!< Operational behavior cancel */
+#if 0
     E_MQC_BEHAVIOR_NEEDRESET                        /*!< Need reset the MQTT session */
+#endif
 }E_MQC_BEHAVIOR_RESULT;
 
 /**
@@ -245,7 +247,7 @@ typedef struct _S_MQC_SESSION_HANDLE
     int32_t                 (*ReadFuncCB)(void* Ctx, E_MQC_MSG_TYPE Type, S_MQC_MESSAGE_INFO* Info);
     /*!< Message data read callback function */
     
-    int32_t                 (*OpenResetFuncCB)(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode);
+    int32_t                 (*OpenResetFuncCB)(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode, bool SessionPresent);
     /*!< CONNECT result callback function */
     
 }S_MQC_SESSION_HANDLE;

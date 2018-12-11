@@ -27,6 +27,9 @@
  * @version     00.00.01 
  *              - 2018/12/10 : zhaozhenge@outlook.com 
  *                  -# New
+ * @version     00.00.02 
+ *              - 2018/12/11 : zhaozhenge@outlook.com 
+ *                  -# Fix the bug for error logic of Session Present
  */
  
 #if !defined(PLATFORM_LINUX) && !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_OTHER)  
@@ -71,7 +74,8 @@ typedef struct _S_USER_DATA
 static S_MQC_SESSION_HANDLE     MQCHandler;
 static S_USER_DATA              UsrData;
 static uint8_t const*           PublishTopic    =   (uint8_t*)"temp/random";
-static uint8_t const*           ClientId        =   (uint8_t*)"b1bfee9163f44141b56eca25af6bc27c";
+static uint8_t const*           ClientId        =   (uint8_t*)"8db1b3c2-a76b-451b-bf3d-17e9a2f89cc6";
+static uint8_t const*           WillTopic       =   (uint8_t*)"will/mini_client";
 
 /**************************************************************
 **  Function
@@ -205,14 +209,14 @@ int32_t PublishResponseFunc(E_MQC_BEHAVIOR_RESULT Result, S_MQC_MESSAGE_INFO* Me
  * @author              zhaozhenge@outlook.com
  * @date                2018/12/03
  */
-int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode)
+int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode, bool SessionPresent)
 {
     S_USER_DATA*        CustomData  =   (S_USER_DATA*)Ctx;
     int32_t             Ret         =   0;
     int32_t             Err         =   D_MQC_RET_OK;
     S_MQC_MESSAGE_INFO  Message;
-    S_MQC_UTF8_DATA     TopicFilter;
-    E_MQC_QOS_LEVEL     QoS;
+    S_MQC_UTF8_DATA     TopicFilter[2];
+    E_MQC_QOS_LEVEL     QoS[2];
     
     do
     {
@@ -220,47 +224,6 @@ int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_
         {
             D_MQC_PRINT( " failed\n  ! Connect timeout\n\n" );
             CustomData->Running = false;
-            break;
-        }
-        
-        if(E_MQC_BEHAVIOR_NEEDRESET == Result)
-        {
-            D_MQC_PRINT( " failed\n  ! Session need reset\n\n");
-            /* Session close */
-            Err = MQC_Close(CustomData->Handler);
-            if(D_MQC_RET_OK != Err)
-            {
-                D_MQC_PRINT( " failed\n  ! MQC_Reset() returned %d\n\n", Err );
-                CustomData->Running = false;
-                Ret = -1;
-                break;
-            }
-            /* SSL Session Close */
-            ssl_wrapper_deinit(&(CustomData->Ssl));
-            /* Network close */
-            network_close_wrapper(&(CustomData->Platform));
-            
-            if( network_open_wrapper(&(CustomData->Platform)) )
-            {
-                D_MQC_PRINT( " failed\n  ! network_open_wrapper() \n\n");
-                CustomData->Running = false;
-                Ret = -1;
-                break;
-            }
-            if(ssl_wrapper_init(&(CustomData->Ssl), &(CustomData->Platform)))
-            {
-                D_MQC_PRINT( " failed\n  ! ssl_wrapper_init() \n\n");
-                CustomData->Running = false;
-                Ret = -1;
-                break;
-            }
-            Err = MQC_Reset(CustomData->Handler, 5000);
-            if(D_MQC_RET_OK != Err)
-            {
-                D_MQC_PRINT( " failed\n  ! MQC_Reset() returned %d\n\n", Err );
-                CustomData->Running = false;
-                Ret = -1;
-            }
             break;
         }
         
@@ -273,25 +236,31 @@ int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_
         
         D_MQC_PRINT( " Session Connected \n");
         
-        /* Subscribe Topic */
-        TopicFilter.Length  =   strlen((char*)PublishTopic);
-        TopicFilter.Data    =   (uint8_t*)PublishTopic;
-        QoS                 =   E_MQC_QOS_2;
-        Err = MQC_Subscribe(CustomData->Handler, &TopicFilter, &QoS, 1, SubscribeResponseFunc);
-        if( D_MQC_RET_OK != Err)
+        if( !SessionPresent )
         {
-            D_MQC_PRINT( " failed\n  ! MQC_Publish() returned %d\n\n", Err );
-            CustomData->Running = false;
-            Ret = -1;
-            break;
+            /* Subscribe Topic */
+            TopicFilter[0].Length  =   strlen((char*)PublishTopic);
+            TopicFilter[0].Data    =   (uint8_t*)PublishTopic;
+            QoS[0]                 =   E_MQC_QOS_0;
+            TopicFilter[1].Length  =   strlen((char*)WillTopic);
+            TopicFilter[1].Data    =   (uint8_t*)WillTopic;
+            QoS[1]                 =   E_MQC_QOS_1;
+            Err = MQC_Subscribe(CustomData->Handler, TopicFilter, QoS, 2, SubscribeResponseFunc);
+            if( D_MQC_RET_OK != Err)
+            {
+                D_MQC_PRINT( " failed\n  ! MQC_Subscribe() returned %d\n\n", Err );
+                CustomData->Running = false;
+                Ret = -1;
+                break;
+            }
         }
-
+        
         /* Publish Message */
         Message.Topic.Length    =   strlen((char*)PublishTopic);
         Message.Topic.Data      =   (uint8_t*)PublishTopic;
-        Message.Length          =   strlen("50");
-        Message.Content         =   (uint8_t*)"50";
-        Err = MQC_Publish(CustomData->Handler, &Message, E_MQC_QOS_2, false, PublishResponseFunc);
+        Message.Length          =   strlen("20");
+        Message.Content         =   (uint8_t*)"20";
+        Err = MQC_Publish(CustomData->Handler, &Message, E_MQC_QOS_1, false, PublishResponseFunc);
         if( D_MQC_RET_OK != Err)
         {
             D_MQC_PRINT( " failed\n  ! MQC_Publish() returned %d\n\n", Err );

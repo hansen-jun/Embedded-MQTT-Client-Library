@@ -26,6 +26,9 @@
  * @version     00.00.01 
  *              - 2018/06/18 : zhaozhenge@outlook.com 
  *                  -# New
+ * @version     00.00.02 
+ *              - 2018/12/11 : zhaozhenge@outlook.com 
+ *                  -# Fix the bug for error logic of Session Present
  */
 
 /**************************************************************
@@ -58,25 +61,25 @@
 #define D_MQC_PINGREQ_MSG_VARIABLE_HEADER_SIZE      (0)     /*!< No Data */
 #define D_MQC_DISCONNECT_MSG_VARIABLE_HEADER_SIZE   (0)     /*!< No Data */
 
-#define D_MQC_CALLBACK_SAFECALL(Ret, function, ...)  {\
-                                                        if(MQCHandler->UnlockFunc)\
-                                                        {\
-                                                            MQCHandler->UnlockFunc(MQCHandler->UsrCtx);\
-                                                        }\
+#define D_MQC_CALLBACK_SAFECALL(Ret, function, ...) {\
                                                         if(function)\
                                                         {\
+                                                            if(MQCHandler->UnlockFunc)\
+                                                            {\
+                                                                MQCHandler->UnlockFunc(MQCHandler->UsrCtx);\
+                                                            }\
                                                             Ret = function(__VA_ARGS__);\
+                                                            if(MQCHandler->LockFunc)\
+                                                            {\
+                                                                MQCHandler->LockFunc(MQCHandler->UsrCtx);\
+                                                            }\
                                                         }\
                                                         else\
                                                         {\
                                                             Ret = 0;\
                                                         }\
-                                                        if(MQCHandler->LockFunc)\
-                                                        {\
-                                                            MQCHandler->LockFunc(MQCHandler->UsrCtx);\
-                                                        }\
                                                         (void)Ret;\
-                                                     }
+                                                    }
 
 /**************************************************************
 **  Structure
@@ -2196,11 +2199,23 @@ static int32_t prvMQC_processConnack(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t F
         
         SessionPresent = CLIB_BIT_CHECK(Data[0], 0);
         
+        if( (E_MQC_STATUS_RESET == MQCHandler->SessionCtx.Status) || (MQCHandler->CleanSession) )
+        {
+            if(SessionPresent)
+            {
+                /* Bad Format */
+                Ret = D_MQC_RET_BAD_FORMAT;
+                break;
+            }
+        }
+        
+#if 0        
         if( SessionPresent != (!MQC_MsgQueue_empty( &(MQCHandler->SessionCtx.MessageQueue) )) )
         {
             /* Need reset  */
             Result = E_MQC_BEHAVIOR_NEEDRESET;
         }
+#endif
         
         /* Change status */
         if( E_MQC_STATUS_RESET == MQCHandler->SessionCtx.Status )
@@ -2228,7 +2243,7 @@ static int32_t prvMQC_processConnack(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t F
         }
         
         /* Notify user the connect result */
-        D_MQC_CALLBACK_SAFECALL(Ret, MQCHandler->OpenResetFuncCB, MQCHandler->UsrCtx, Result, Data[1]);
+        D_MQC_CALLBACK_SAFECALL(Ret, MQCHandler->OpenResetFuncCB, MQCHandler->UsrCtx, Result, Data[1], SessionPresent);
         
         Ret = D_MQC_RET_OK;
 
@@ -3568,7 +3583,7 @@ extern void MQC_CoreContinue(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
                     prvMQC_CoreCleanSession(MQCHandler);
                 }
                 /* Call the callback function */
-                D_MQC_CALLBACK_SAFECALL(Ret, MQCHandler->OpenResetFuncCB, MQCHandler->UsrCtx, E_MQC_BEHAVIOR_TIMEOUT, 0);
+                D_MQC_CALLBACK_SAFECALL(Ret, MQCHandler->OpenResetFuncCB, MQCHandler->UsrCtx, E_MQC_BEHAVIOR_TIMEOUT, 0, false);
             }
             else
             {

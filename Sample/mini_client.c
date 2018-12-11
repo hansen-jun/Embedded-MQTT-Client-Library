@@ -26,6 +26,9 @@
  * @version     00.00.01 
  *              - 2018/12/03 : zhaozhenge@outlook.com 
  *                  -# New
+ * @version     00.00.02 
+ *              - 2018/12/11 : zhaozhenge@outlook.com 
+ *                  -# Fix the bug for error logic of Session Present
  */
  
 #if !defined(PLATFORM_LINUX) && !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_OTHER)  
@@ -76,7 +79,11 @@ typedef struct _S_USER_DATA
 static S_MQC_SESSION_HANDLE     MQCHandler;
 static S_USER_DATA              UsrData;
 static uint8_t const*           PublishTopic    =   (uint8_t*)"temp/random";
-static uint8_t const*           ClientId        =   (uint8_t*)"b1bfee9163f44141b56eca25af6bc27c";
+static uint8_t const*           ClientId        =   (uint8_t*)"76ac27d0-97fd-4ee4-80d4-2af2e10b7347";
+static uint8_t const*           WillTopic       =   (uint8_t*)"will/mini_client";
+static uint8_t const*           WillMessage     =   (uint8_t*)"mini_client will message";
+//static uint8_t const*           UserName        =   (uint8_t*)"mini_client";
+//static uint8_t const*           Password        =   (uint8_t*)"mini_client";
 
 /**************************************************************
 **  Function
@@ -210,7 +217,7 @@ int32_t WriteTcp_callback(void* Ctx, const uint8_t* Data, size_t Size)
  * @author              zhaozhenge@outlook.com
  * @date                2018/12/03
  */
-int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode)
+int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode, bool SessionPresent)
 {
     S_USER_DATA*        CustomData  =   (S_USER_DATA*)Ctx;
     int32_t             Ret         =   0;
@@ -228,37 +235,6 @@ int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_
             break;
         }
         
-        if(E_MQC_BEHAVIOR_NEEDRESET == Result)
-        {
-            D_MQC_PRINT( " failed\n  ! Session need reset\n\n");
-            /* Session close */
-            Err = MQC_Close(CustomData->Handler);
-            if(D_MQC_RET_OK != Err)
-            {
-                D_MQC_PRINT( " failed\n  ! MQC_Reset() returned %d\n\n", Err );
-                CustomData->Running = false;
-                Ret = -1;
-                break;
-            }
-            /* Network close */
-            network_close_wrapper(&(CustomData->Platform));
-            if( network_open_wrapper(&(CustomData->Platform)) )
-            {
-                D_MQC_PRINT( " failed\n  ! network_open_wrapper() \n\n");
-                CustomData->Running = false;
-                Ret = -1;
-                break;
-            }
-            Err = MQC_Reset(CustomData->Handler, 5000);
-            if(D_MQC_RET_OK != Err)
-            {
-                D_MQC_PRINT( " failed\n  ! MQC_Reset() returned %d\n\n", Err );
-                CustomData->Running = false;
-                Ret = -1;
-            }
-            break;
-        }
-        
         if(D_MQC_OPEN_SUCCESS_CODE != SrvResCode)
         {
             D_MQC_PRINT( " Session Connect Error %d\n\n", SrvResCode );
@@ -268,25 +244,28 @@ int32_t OpenResetNotify_callback(void* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_
         
         D_MQC_PRINT( " Session Connected \n");
         
-        /* Subscribe Topic */
-        TopicFilter.Length  =   strlen((char*)PublishTopic);
-        TopicFilter.Data    =   (uint8_t*)PublishTopic;
-        QoS                 =   E_MQC_QOS_2;
-        Err = MQC_Subscribe(CustomData->Handler, &TopicFilter, &QoS, 1, SubscribeResponseFunc);
-        if( D_MQC_RET_OK != Err)
+        if( !SessionPresent )
         {
-            D_MQC_PRINT( " failed\n  ! MQC_Publish() returned %d\n\n", Err );
-            CustomData->Running = false;
-            Ret = -1;
-            break;
+            /* Subscribe Topic */
+            TopicFilter.Length  =   strlen((char*)PublishTopic);
+            TopicFilter.Data    =   (uint8_t*)PublishTopic;
+            QoS                 =   E_MQC_QOS_2;
+            Err = MQC_Subscribe(CustomData->Handler, &TopicFilter, &QoS, 1, SubscribeResponseFunc);
+            if( D_MQC_RET_OK != Err)
+            {
+                D_MQC_PRINT( " failed\n  ! MQC_Subscribe() returned %d\n\n", Err );
+                CustomData->Running = false;
+                Ret = -1;
+                break;
+            }
         }
-
+        
         /* Publish Message */
         Message.Topic.Length    =   strlen((char*)PublishTopic);
         Message.Topic.Data      =   (uint8_t*)PublishTopic;
         Message.Length          =   strlen("50");
         Message.Content         =   (uint8_t*)"50";
-        Err = MQC_Publish(CustomData->Handler, &Message, E_MQC_QOS_2, false, PublishResponseFunc);
+        Err = MQC_Publish(CustomData->Handler, &Message, E_MQC_QOS_2, true, PublishResponseFunc);
         if( D_MQC_RET_OK != Err)
         {
             D_MQC_PRINT( " failed\n  ! MQC_Publish() returned %d\n\n", Err );
@@ -379,23 +358,37 @@ int MqttTask( void* Input )
     UsrData.Handler =   &MQCHandler;
     UsrData.Running =   false;
     
-    MQCHandler.UsrCtx                       =   &UsrData;
-    MQCHandler.CleanSession                 =   true;
-    MQCHandler.WillMessage.Enable           =   false;
-    MQCHandler.Authorition.UsernameEnable   =   false;
-    MQCHandler.Authorition.PasswordEnable   =   false;
-    MQCHandler.ClientId.Data                =   (uint8_t*)ClientId;
-    MQCHandler.ClientId.Length              =   strlen((char*)ClientId);
-    MQCHandler.KeepAliveInterval            =   10;
-    MQCHandler.MessageRetryInterval         =   5;
-    MQCHandler.MessageRetryCount            =   3;
-    MQCHandler.MallocFunc                   =   malloc_wrapper;
-    MQCHandler.FreeFunc                     =   free_wrapper;
-    MQCHandler.LockFunc                     =   NULL;
-    MQCHandler.UnlockFunc                   =   NULL;
-    MQCHandler.WriteFuncCB                  =   WriteTcp_callback;
-    MQCHandler.ReadFuncCB                   =   ReadNotify_callback;
-    MQCHandler.OpenResetFuncCB              =   OpenResetNotify_callback;
+    MQCHandler.UsrCtx                           =   &UsrData;
+    MQCHandler.CleanSession                     =   false;
+    MQCHandler.WillMessage.Enable               =   true;
+    MQCHandler.WillMessage.QoS                  =   E_MQC_QOS_1;
+    MQCHandler.WillMessage.Retain               =   true;
+    MQCHandler.WillMessage.Message.Topic.Data   =   (uint8_t*)WillTopic;
+    MQCHandler.WillMessage.Message.Topic.Length =   strlen((char*)WillTopic);
+    MQCHandler.WillMessage.Message.Content      =   (uint8_t*)WillMessage;
+    MQCHandler.WillMessage.Message.Length       =   strlen((char*)WillMessage);
+    /*
+    MQCHandler.Authorition.UsernameEnable       =   true;
+    MQCHandler.Authorition.Username.Data        =   (uint8_t*)UserName;
+    MQCHandler.Authorition.Username.Length      =   strlen((char*)UserName);
+    MQCHandler.Authorition.PasswordEnable       =   true;
+    MQCHandler.Authorition.Password.Data        =   (uint8_t*)Password;
+    MQCHandler.Authorition.Password.Length      =   strlen((char*)Password);
+    */
+    MQCHandler.Authorition.UsernameEnable       =   false;
+    MQCHandler.Authorition.PasswordEnable       =   false;
+    MQCHandler.ClientId.Data                    =   (uint8_t*)ClientId;
+    MQCHandler.ClientId.Length                  =   strlen((char*)ClientId);
+    MQCHandler.KeepAliveInterval                =   10;
+    MQCHandler.MessageRetryInterval             =   5;
+    MQCHandler.MessageRetryCount                =   3;
+    MQCHandler.MallocFunc                       =   malloc_wrapper;
+    MQCHandler.FreeFunc                         =   free_wrapper;
+    MQCHandler.LockFunc                         =   NULL;
+    MQCHandler.UnlockFunc                       =   NULL;
+    MQCHandler.WriteFuncCB                      =   WriteTcp_callback;
+    MQCHandler.ReadFuncCB                       =   ReadNotify_callback;
+    MQCHandler.OpenResetFuncCB                  =   OpenResetNotify_callback;
 
     Err = MQC_Start(&MQCHandler, systick_wrapper());
     if( D_MQC_RET_OK != Err)

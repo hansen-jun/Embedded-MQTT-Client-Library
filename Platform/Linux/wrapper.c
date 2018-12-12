@@ -32,6 +32,9 @@
  * @version     00.00.03 
  *              - 2018/11/30 : zhaozhenge@outlook.com 
  *                  -# Change for MQTT Library
+ * @version     00.00.04 
+ *              - 2018/12/12 : zhaozhenge@outlook.com 
+ *                  -# Modify some comment
  */
 
 /**************************************************************
@@ -56,6 +59,26 @@
 /**************************************************************
 **  Interface
 **************************************************************/
+
+extern uint16_t MQC_Wrap_htons(uint16_t Data)
+{
+    return htons(Data);
+}
+
+extern uint32_t MQC_Wrap_htonl(uint32_t Data)
+{
+    return htonl(Data);
+}
+
+extern uint16_t MQC_Wrap_ntohs(uint16_t Data)
+{
+    return ntohs(Data);
+}
+
+extern uint32_t MQC_Wrap_ntohl(uint32_t Data)
+{
+    return ntohl(Data);
+}
 
 /** 
  * @brief               wrapper function initialize
@@ -196,51 +219,21 @@ extern void wrapper_deinit(S_PLATFORM_DATA* Ctx)
 }
 
 /** 
- * @brief               Transform Host order 16 bit data to Net order 16 bit data
- * @param[in]           Data        Host order 16 bit Data
- * @retval              Net order 16 bit data
+ * @brief               This function get some random data
+ * @param[out]          Output          Used to store the random data
+ * @param[in]           Len             The size in bytes of the random data
+ * @return              None
  * @author              zhaozhenge@outlook.com
- * @date                2018/10/29
+ * @date                2018/12/10
  */
-extern uint16_t MQC_Wrap_htons(uint16_t Data)
+extern void random_wrapper(uint8_t* Output, size_t Len)
 {
-    return htons(Data);
-}
-
-/** 
- * @brief               Transform Host order 32 bit data to Net order 32 bit data
- * @param[in]           Data        Host order 32 bit Data
- * @retval              Net order 32 bit data
- * @author              zhaozhenge@outlook.com
- * @date                2018/10/29
- */
-extern uint32_t MQC_Wrap_htonl(uint32_t Data)
-{
-    return htonl(Data);
-}
-
-/** 
- * @brief               Transform Net order 16 bit data to Host order 16 bit data
- * @param[in]           Data        Net order 16 bit Data
- * @retval              Host order 16 bit data
- * @author              zhaozhenge@outlook.com
- * @date                2018/10/29
- */
-extern uint16_t MQC_Wrap_ntohs(uint16_t Data)
-{
-    return ntohs(Data);
-}
-
-/** 
- * @brief               Transform Net order 32 bit data to Host order 32 bit data
- * @param[in]           Data        Net order 32 bit Data
- * @retval              Host order 32 bit data
- * @author              zhaozhenge@outlook.com
- * @date                2018/10/29
- */
-extern uint32_t MQC_Wrap_ntohl(uint32_t Data)
-{
-    return ntohl(Data);
+    size_t  i   =   0;
+    for(i = 0; i < Len; i++)
+    {
+        Output[i] = rand() / 256;
+    }
+    return;
 }
 
 /** 

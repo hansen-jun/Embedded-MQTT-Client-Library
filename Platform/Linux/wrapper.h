@@ -91,6 +91,16 @@ extern int32_t wrapper_init(S_PLATFORM_DATA* Ctx);
 extern void wrapper_deinit(S_PLATFORM_DATA* Ctx);
 
 /** 
+ * @brief               This function get some random data
+ * @param[out]          Output          Used to store the random data
+ * @param[in]           Len             The size in bytes of the random data
+ * @return              None
+ * @author              zhaozhenge@outlook.com
+ * @date                2018/12/10
+ */
+extern void random_wrapper(uint8_t* Output, size_t Len);
+
+/** 
  * @brief               Resource Lock function
  * @param[in]           Ctx         Lock Id
  * @retval              None

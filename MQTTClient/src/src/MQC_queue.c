@@ -26,6 +26,9 @@
  * @version     00.00.01 
  *              - 2018/11/30 : zhaozhenge@outlook.com 
  *                  -# New
+ * @version     00.00.02 
+ *              - 2018/12/12 : zhaozhenge@outlook.com 
+ *                  -# Modify some comment
  */
 
 /**************************************************************
@@ -180,10 +183,11 @@ extern S_MQC_MSG_CTX* MQC_MsgQueue_pop(S_MQC_MSG_QUEUE* MsgQueue)
 /** 
  * @brief               Slice the indicated Message from the Queue
  * @param[in,out]       MsgQueue                Message Queue Management handler
+ * @param[in]           Message                 The Message which want to be sliced from the Queue
  * @return              None
  * @note                The indicated Message should be actually in the Queue
  * @author              zhaozhenge@outlook.com
- * @date                2018/11/30
+ * @date                2018/12/12
  * @callgraph
  * @callergraph
  */

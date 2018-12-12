@@ -29,6 +29,9 @@
  * @version     00.00.02 
  *              - 2018/12/11 : zhaozhenge@outlook.com 
  *                  -# Fix the bug for error logic of Session Present
+ * @version     00.00.03 
+ *              - 2018/12/12 : zhaozhenge@outlook.com 
+ *                  -# Modify some comment
  */
  
 #if !defined(PLATFORM_LINUX) && !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_OTHER)  
@@ -212,6 +215,7 @@ int32_t WriteTcp_callback(void* Ctx, const uint8_t* Data, size_t Size)
  * @param[in,out]       Ctx                 User Context for callback
  * @param[in]           Result              Result of the Connect Behavior
  * @param[in]           SrvResCode          Result of the server response
+ * @param[in]           SessionPresent      If server has already hold the MQTT Session
  * @retval              0                   success
  * @retval              -1                  fail
  * @author              zhaozhenge@outlook.com

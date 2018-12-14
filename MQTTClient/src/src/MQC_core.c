@@ -29,6 +29,9 @@
  * @version     00.00.02 
  *              - 2018/12/11 : zhaozhenge@outlook.com 
  *                  -# Fix the bug for error logic of Session Present
+ * @version     00.00.03 
+ *              - 2018/12/14 : zhaozhenge@outlook.com 
+ *                  -# Improvement for the exception case logic
  */
 
 /**************************************************************
@@ -2437,13 +2440,14 @@ static int32_t prvMQC_processPuback(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t Fi
  * @retval              D_MQC_RET_BAD_FORMAT
  * @retval              D_MQC_RET_NO_MEMORY
  * @author              zhaozhenge@outlook.com
- * @date                2018/12/03
+ * @date                2018/12/14
  * @callgraph
  * @callergraph
  */
 static int32_t prvMQC_processPubrec(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t FixedHeader, uint8_t* Data, uint32_t DataSize)
 {
     int32_t         Ret                 =   D_MQC_RET_OK;
+    int32_t         Err                 =   0;
     uint16_t        PacketIdentifier    =   0;
     S_MQC_MSG_CTX*  Message             =   NULL;
     
@@ -2481,15 +2485,15 @@ static int32_t prvMQC_processPubrec(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t Fi
             /* delete this message from the queue */
             MQC_MsgQueue_slice(&(MQCHandler->SessionCtx.MessageQueue), Message);
             
+            /* Send PUBREL Message */
+            Ret = prvMQC_CorePubrel(MQCHandler, PacketIdentifier);
+            
             /* Notify user the publish complete */
-            D_MQC_CALLBACK_SAFECALL(Ret, Message->ExtData.Publish.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, &(Message->ExtData.Publish.Message));
+            D_MQC_CALLBACK_SAFECALL(Err, Message->ExtData.Publish.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, &(Message->ExtData.Publish.Message));
             
             /* Free the memory */
             MQCHandler->FreeFunc(Message->MsgData);
             MQCHandler->FreeFunc(Message);
-            
-            /* Send PUBREL Message */
-            Ret = prvMQC_CorePubrel(MQCHandler, PacketIdentifier);
         }
         
     }while(0);
@@ -2706,11 +2710,11 @@ static int32_t prvMQC_processSuback(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t Fi
                 break;
             }
             
-            /* Notify user the subscribe complete */
-            D_MQC_CALLBACK_SAFECALL(Ret, Message->ExtData.Subscribe.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, Message->ExtData.Subscribe.TopicFilterList, CodeList, DataSize);
-            
             /* delete this message from the queue */
             MQC_MsgQueue_slice(&(MQCHandler->SessionCtx.MessageQueue), Message);
+            
+            /* Notify user the subscribe complete */
+            D_MQC_CALLBACK_SAFECALL(Ret, Message->ExtData.Subscribe.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, Message->ExtData.Subscribe.TopicFilterList, CodeList, DataSize);
             
             /* Free the memory */
             MQCHandler->FreeFunc(Message->MsgData);
@@ -2771,11 +2775,11 @@ static int32_t prvMQC_processUnsuback(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t 
         Message = MQC_MsgQueue_search(&(MQCHandler->SessionCtx.MessageQueue), PacketIdentifier, E_MQC_MSG_UNSUBSCRIBE);
         if(Message)
         {
-            /* Notify user the subscribe complete */
-            D_MQC_CALLBACK_SAFECALL(Ret, Message->ExtData.UnSubscribe.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, Message->ExtData.UnSubscribe.TopicFilterList, Message->ExtData.UnSubscribe.ListNum);
-            
             /* delete this message from the queue */
             MQC_MsgQueue_slice(&(MQCHandler->SessionCtx.MessageQueue), Message);
+            
+            /* Notify user the subscribe complete */
+            D_MQC_CALLBACK_SAFECALL(Ret, Message->ExtData.UnSubscribe.ResultFuncCB, E_MQC_BEHAVIOR_COMPLETE, Message->ExtData.UnSubscribe.TopicFilterList, Message->ExtData.UnSubscribe.ListNum);
             
             /* Free the memory */
             MQCHandler->FreeFunc(Message->MsgData);
@@ -3076,7 +3080,11 @@ extern int32_t MQC_CoreStop(S_MQC_SESSION_HANDLE* MQCHandler)
             Ret = prvMQC_CoreDisconnect(MQCHandler);
             break;
         default:
-            Ret =   D_MQC_RET_UNEXPECTED_ERROR;
+            Ret = D_MQC_RET_UNEXPECTED_ERROR;
+            if(MQCHandler->UnlockFunc)
+            {
+                MQCHandler->UnlockFunc(MQCHandler->UsrCtx);
+            }
             return Ret;
     }
     
@@ -3546,7 +3554,7 @@ extern int32_t MQC_CoreRead(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t* Data, siz
  * @param[in]           SystimeCount            System timer count with millisecond
  * @return              None
  * @author              zhaozhenge@outlook.com
- * @date                2018/12/04
+ * @date                2018/12/14
  * @callgraph
  * @callergraph
  */
@@ -3568,7 +3576,22 @@ extern void MQC_CoreContinue(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
             break;
         case E_MQC_STATUS_CONNECT:
         case E_MQC_STATUS_RESET:
+        case E_MQC_STATUS_WORK:
             PassedTime = prvMQC_CheckPassTime(MQCHandler->SessionCtx.SystimeCount, SystimeCount);
+            MQCHandler->SessionCtx.SystimeCount = SystimeCount;
+            MQC_MsgQueue_process(&(MQCHandler->SessionCtx.MessageQueue), SystimeCount, prvMQC_WriteCBForProcess, prvMQC_TimeoutCBForProcess, MQCHandler);
+            break;
+        default:
+            break;
+    }
+    
+    /* User may change the status in callback function , so check the status again*/
+    switch (MQCHandler->SessionCtx.Status)
+    {
+        case E_MQC_STATUS_OPEN:
+            break;
+        case E_MQC_STATUS_CONNECT:
+        case E_MQC_STATUS_RESET:
             if( PassedTime >= MQCHandler->SessionCtx.TimeoutCount )
             {
                 /* Timeout */
@@ -3589,13 +3612,10 @@ extern void MQC_CoreContinue(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
             {
                 MQCHandler->SessionCtx.TimeoutCount = MQCHandler->SessionCtx.TimeoutCount - PassedTime;
             }
-            MQCHandler->SessionCtx.SystimeCount = SystimeCount;
-            MQC_MsgQueue_process(&(MQCHandler->SessionCtx.MessageQueue), SystimeCount, prvMQC_WriteCBForProcess, prvMQC_TimeoutCBForProcess, MQCHandler);
             break;
         case E_MQC_STATUS_WORK:
             if( MQCHandler->KeepAliveInterval )
             {
-                PassedTime = prvMQC_CheckPassTime(MQCHandler->SessionCtx.SystimeCount, SystimeCount);
                 if( PassedTime >= MQCHandler->SessionCtx.TimeoutCount )
                 {
                     /* Timeout */
@@ -3607,8 +3627,6 @@ extern void MQC_CoreContinue(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
                     MQCHandler->SessionCtx.TimeoutCount = MQCHandler->SessionCtx.TimeoutCount - PassedTime;
                 }
             }
-            MQCHandler->SessionCtx.SystimeCount = SystimeCount;
-            MQC_MsgQueue_process(&(MQCHandler->SessionCtx.MessageQueue), SystimeCount, prvMQC_WriteCBForProcess, prvMQC_TimeoutCBForProcess, MQCHandler);
             break;
         default:
             break;

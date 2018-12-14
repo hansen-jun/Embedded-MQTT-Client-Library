@@ -93,6 +93,11 @@ MQC_EXTERN int32_t MQC_Start(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
     {
         return D_MQC_RET_BAD_INPUT_DATA;
     }
+    /* If client use a 0 byte id, must set the CleanSession with true */
+    if( (!MQCHandler->ClientId.Length) && (!MQCHandler->CleanSession) )
+    {
+        return D_MQC_RET_BAD_INPUT_DATA;
+    }
     /* Core Start */
     return MQC_CoreStart(MQCHandler, SystimeCount);
 }

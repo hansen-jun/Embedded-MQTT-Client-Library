@@ -76,10 +76,11 @@
                                                             {\
                                                                 MQCHandler->LockFunc(MQCHandler->UsrCtx);\
                                                             }\
+                                                            Ret = (Ret)?D_MQC_RET_CALLBACK_ERROR:D_MQC_RET_OK;\
                                                         }\
                                                         else\
                                                         {\
-                                                            Ret = 0;\
+                                                            Ret = D_MQC_RET_OK;\
                                                         }\
                                                         (void)Ret;\
                                                     }
@@ -1089,16 +1090,16 @@ static void prvMQC_PackageFree( S_MQC_SESSION_HANDLE* MQCHandler )
  * @param[in,out]       MQCHandler      MQTT client handler
  * @param[in]           Message         Discarded Message
  * @param[in]           Result          Discard Reasion
- * @retval              0               success
- * @retval              -1              fail
+ * @retval              D_MQC_RET_OK
+ * @retval              D_MQC_RET_CALLBACK_ERROR
  * @author              zhaozhenge@outlook.com
- * @date                2018/12/03
+ * @date                2018/12/14
  * @callgraph
  * @callergraph
  */
 static int32_t prvMessageDiscardNotify(S_MQC_SESSION_HANDLE* MQCHandler, S_MQC_MSG_CTX*  Message, E_MQC_BEHAVIOR_RESULT Result)
 {
-    int32_t Ret = 0;
+    int32_t Ret = D_MQC_RET_OK;
     switch( Message->MsgData[0] >> 4 )
     {
         case E_MQC_MSG_SUBSCRIBE:

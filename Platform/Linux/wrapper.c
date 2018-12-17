@@ -143,14 +143,6 @@ extern int32_t network_open_wrapper(S_PLATFORM_DATA* Ctx)
     
     do
     {
-        hptr = gethostbyname(Ctx->DstAddress);
-        if( !hptr )
-        {
-            Err = -1;
-            D_MQC_PRINT( " failed\n  ! gethostbyname() returned NULL\n\n" );
-            break;
-        }
-        
         /* Create Socket */
         Err = socket(AF_INET, SOCK_STREAM, 0);
         if(0 >= Err)
@@ -161,8 +153,24 @@ extern int32_t network_open_wrapper(S_PLATFORM_DATA* Ctx)
         Ctx->SocketFd = Err;
         ServerAddr.sin_family = AF_INET;
         ServerAddr.sin_port = htons(Ctx->DstPort);
-        memcpy( &(ServerAddr.sin_addr.s_addr), hptr->h_addr_list[0], sizeof(ServerAddr.sin_addr.s_addr));
         memset(&(ServerAddr.sin_zero), 0, sizeof(ServerAddr.sin_zero)); 
+        /* Get IP Address */
+        if(INADDR_NONE == inet_addr(Ctx->DstAddress))
+        {
+            hptr = gethostbyname(Ctx->DstAddress);
+            if( !hptr )
+            {
+                Err = -1;
+                D_MQC_PRINT( " failed\n  ! gethostbyname() returned NULL\n\n" );
+                break;
+            }
+            memcpy( &(ServerAddr.sin_addr.s_addr), hptr->h_addr_list[0], sizeof(ServerAddr.sin_addr.s_addr));
+        }
+        else
+        {
+            ServerAddr.sin_addr.s_addr = inet_addr(Ctx->DstAddress);
+        }
+        /* Connect */
         Err = connect(Ctx->SocketFd, (struct sockaddr *)&ServerAddr, sizeof(struct sockaddr_in));
         if(Err)
         {

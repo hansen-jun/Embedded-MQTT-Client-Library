@@ -11,11 +11,13 @@ MINICLIENTDIR	= ./mini_client
 
 SSLCLIENTDIR	= ./ssl_client
 
+PAHOTESTDIR		= ./paho_test
+
 #
 # Compile Menu
 #
 
-.PHONY				:	all clean wsc cleanwsc ccommon cleanccommon mini_client cleanmini_client ssl_client cleanssl_client
+.PHONY				:	all clean wsc cleanwsc ccommon cleanccommon mini_client cleanmini_client ssl_client cleanssl_client paho_test cleanpaho_test
 
 all					:	ccommon mqc
 
@@ -41,6 +43,12 @@ cleanmini_client	:
 
 ssl_client			:	all
 	make -C $(SSLCLIENTDIR) all
-    
+
 cleanssl_client		:
 	make -C $(SSLCLIENTDIR) clean
+
+paho_test			:	all
+	make -C $(PAHOTESTDIR) all
+    
+cleanpaho_test		:
+	make -C $(PAHOTESTDIR) clean

@@ -26,6 +26,9 @@
  * @version     00.00.01 
  *              - 2018/06/14 : zhaozhenge@outlook.com 
  *                  -# New
+ * @version     00.00.02 
+ *              - 2018/12/17 : zhaozhenge@outlook.com 
+ *                  -# Improvement for param check
  */
 
 /**************************************************************
@@ -46,7 +49,7 @@
  * @retval              D_MQC_RET_BAD_INPUT_DATA
  * @note                MQC_Start must be called before all of the MQC API called
  * @author              zhaozhenge@outlook.com
- * @date                2018/06/14
+ * @date                2018/12/17
  * @callgraph
  * @hidecallergraph
  */
@@ -97,6 +100,11 @@ MQC_EXTERN int32_t MQC_Start(S_MQC_SESSION_HANDLE* MQCHandler, uint32_t SystimeC
     if( (!MQCHandler->ClientId.Length) && (!MQCHandler->CleanSession) )
     {
         return D_MQC_RET_BAD_INPUT_DATA;
+    }
+    /* If do not use username, also cannot use password */
+    if( !MQCHandler->Authorition.UsernameEnable )
+    {
+        MQCHandler->Authorition.PasswordEnable = false;
     }
     /* Core Start */
     return MQC_CoreStart(MQCHandler, SystimeCount);

@@ -44,7 +44,12 @@ static uint8_t const*           ClientId        =   (uint8_t*)"76ac27d0-97fd-4ee
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 1 :  
+    1.Start a MQTT Session.
+    2.Connect to MQTT broker (CONNECT message) with CleanSession On, no Authorition and no will message.
+    3.Receive response(CONNACK message) from broker and correctly judge the connect result is OK.   
+*/
 extern int32_t TestCase_001(S_USER_DATA* Ctx)
 {
     int32_t Err =   D_MQC_RET_OK;

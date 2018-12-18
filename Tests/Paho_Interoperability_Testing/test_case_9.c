@@ -48,7 +48,16 @@ static uint8_t const*           WillMessage     =   (uint8_t*)"Client 6823e68d-8
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 9 :  
+    1.Stop the current MQTT Session.
+    2.Start a new MQTT Session.
+    3.Close the TCP/IP network
+    4.Restart the TCP/IP network
+    5.Connect to MQTT broker (CONNECT message) with CleanSession Off, user & password Authorition and will message.
+    6.Receive response(CONNACK message) from broker and correctly judge the connect result is OK.   
+*/
+
 extern int32_t TestCase_009(S_USER_DATA* Ctx)
 {
     int32_t Err =   D_MQC_RET_OK;

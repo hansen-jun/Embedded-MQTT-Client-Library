@@ -45,7 +45,12 @@ static uint8_t const*   PublishMessage  =   (uint8_t*)"This is a test message fo
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 3 :  
+    1.Publish a QoS0 message to MQTT broker with retain flag off.
+    2.Receive a QoS0 message from broker and correctly get the message content.   
+*/
+
 extern int32_t TestCase_003(S_USER_DATA* Ctx)
 {
     int32_t             Err =   D_MQC_RET_OK;

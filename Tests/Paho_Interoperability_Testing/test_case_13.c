@@ -19,7 +19,7 @@
 **  Mbed MQTT Client Library with C
 **************************************************************/
 /** 
- * @example     test_case_12.c
+ * @example     test_case_13.c
  * @brief       Client test case for Paho MQTT Conformance/Interoperability Testing.
  * @author      zhaozhenge@outlook.com
  *
@@ -38,69 +38,45 @@
 **  Global Param
 **************************************************************/
 
+static uint8_t const*   PublishTopic[]  =   
+{
+    (uint8_t*)"test/exist", 
+    (uint8_t*)"test/exist"
+};
+
 /**************************************************************
 **  Interface
 **************************************************************/
 
 /* 
-    Test Case 12 :  
-    1.Stop the current MQTT Session.
-    2.Start a new MQTT Session.
-    3.Close the TCP/IP network
-    4.Restart the TCP/IP network
-    5.Connect to MQTT broker (CONNECT message) with 0 byte client id.
-    6.Receive response(CONNACK message) from broker and correctly judge the connect result is OK.   
+    Test Case 13 :  
+    1.Subscribe 2 same topics in one message(SUBSCRIBE message) with MQTT broker.
+    2.Receive response(SUBACK message) from broker and correctly judge the Subscribe result is OK.   
 */
 
-extern int32_t TestCase_012(S_USER_DATA* Ctx)
+extern int32_t TestCase_013(S_USER_DATA* Ctx)
 {
-    int32_t Err =   D_MQC_RET_OK;
-    int32_t Ret =   0;
+    int32_t             Err =   D_MQC_RET_OK;
+    int32_t             Ret =   0;
+    S_MQC_UTF8_DATA     TopicFilter[2];
+    E_MQC_QOS_LEVEL     QoS[2];
     
     D_MQC_PRINT( " [test_case_%03d]\n", Ctx->CaseNo + 1);
     
     do
     {
-        /* Session Top */
-        Err = MQC_Stop( Ctx->Handler );
+        /* Subscribe Topic */
+        TopicFilter[0].Length  =   strlen((char*)PublishTopic[0]);
+        TopicFilter[0].Data    =   (uint8_t*)PublishTopic[0];
+        QoS[0]                 =   E_MQC_QOS_0;
+        TopicFilter[1].Length  =   strlen((char*)PublishTopic[1]);
+        TopicFilter[1].Data    =   (uint8_t*)PublishTopic[1];
+        QoS[1]                 =   E_MQC_QOS_1;
+        
+        Err = MQC_Subscribe( Ctx->Handler, TopicFilter, QoS, 2, SubscribeResponseFunc);
         if( D_MQC_RET_OK != Err)
         {
-            D_MQC_PRINT( " failed\n  ! MQC_Stop() returned %d\n\n", Err );
-            Ret = -1;
-            break;
-        }
-        
-        /* Close Network */
-        network_close_wrapper(&(Ctx->Platform));
-        
-        /* Open network again */
-        if( network_open_wrapper(&(Ctx->Platform)) )
-        {
-            D_MQC_PRINT( " failed\n  ! network_open_wrapper() Error\n\n" );
-            Ret = -1;
-            break;
-        }
-        
-        /* Update Configuration */
-        Ctx->Handler->CleanSession                      =   true;
-        Ctx->Handler->WillMessage.Enable                =   false;
-        Ctx->Handler->Authorition.UsernameEnable        =   false;
-        Ctx->Handler->Authorition.PasswordEnable        =   false;
-        Ctx->Handler->ClientId.Data                     =   NULL;
-        Ctx->Handler->ClientId.Length                   =   0;
-        
-        Err = MQC_Start(Ctx->Handler, systick_wrapper());
-        if( D_MQC_RET_OK != Err)
-        {
-            D_MQC_PRINT( " failed\n  ! MQC_Start() returned %d\n\n", Err );
-            Ret = -1;
-            break;
-        }
-        
-        Err = MQC_Open(Ctx->Handler, 5000);
-        if( D_MQC_RET_OK != Err)
-        {
-            D_MQC_PRINT( " failed\n  ! MQC_Open() returned %d\n\n", Err );
+            D_MQC_PRINT( " failed\n  ! MQC_Subscribe() returned %d\n\n", Err );
             Ret = -1;
             break;
         }
@@ -112,9 +88,10 @@ extern int32_t TestCase_012(S_USER_DATA* Ctx)
     return Ret;
 }
 
-extern int32_t TestCase_012_OpenResetFuncCB(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode, bool SessionPresent, bool* Complete)
+extern int32_t TestCase_013_SubscribeResponseFunc( S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, S_MQC_UTF8_DATA* TopicFilterList, E_MQC_RETURN_CODE* SrvRetCodeList, uint32_t ListNum, bool* Complete)
 {
     int32_t Ret =   0;
+    int     i   =   0;
     
     do
     {
@@ -125,18 +102,35 @@ extern int32_t TestCase_012_OpenResetFuncCB(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RES
             break;
         }
         
-        if(D_MQC_OPEN_SUCCESS_CODE != SrvResCode)
+        if(2 != ListNum)
         {
-            D_MQC_PRINT( " failed\n  ! SrvResCode is %d\n\n" , SrvResCode);
+            D_MQC_PRINT( " failed\n  ! ListNum is %d\n\n" , ListNum);
             Ret = -1;
             break;
         }
         
-        if(SessionPresent)
+        for(i = 0; i < 2; i++)
         {
-            D_MQC_PRINT( " failed\n  ! SessionPresent is %d\n\n" , SessionPresent);
-            Ret = -1;
-            break;
+            if(E_MQC_CODE_FAIL == SrvRetCodeList[i])
+            {
+                D_MQC_PRINT( " failed\n  ! SrvRetCodeList[%d] is E_MQC_CODE_FAIL\n\n" , i);
+                Ret = -1;
+                break;
+            }
+            
+            if( TopicFilterList[i].Length != strlen((char*)PublishTopic[i]) )
+            {
+                D_MQC_PRINT( " failed\n  ! TopicFilter[%d] Length is %d\n\n" , i, TopicFilterList[i].Length);
+                Ret = -1;
+                break;
+            }
+            
+            if( memcmp(TopicFilterList[i].Data, PublishTopic[i], TopicFilterList[i].Length) )
+            {
+                D_MQC_PRINT( " failed\n  ! TopicFilterList[%d] is %.*s\n\n" , i, TopicFilterList[i].Length, TopicFilterList[i].Data);
+                Ret = -1;
+                break;
+            }
         }
         
         *Complete = true;

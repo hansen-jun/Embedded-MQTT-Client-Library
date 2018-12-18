@@ -26,7 +26,10 @@ SOURCES_M		= $(TOP)Tests/Paho_Interoperability_Testing/client_test_suite.c \
                     $(TOP)Tests/Paho_Interoperability_Testing/test_case_9.c \
                     $(TOP)Tests/Paho_Interoperability_Testing/test_case_10.c \
                     $(TOP)Tests/Paho_Interoperability_Testing/test_case_11.c \
-                    $(TOP)Tests/Paho_Interoperability_Testing/test_case_12.c
+                    $(TOP)Tests/Paho_Interoperability_Testing/test_case_12.c \
+                    $(TOP)Tests/Paho_Interoperability_Testing/test_case_13.c \
+                    $(TOP)Tests/Paho_Interoperability_Testing/test_case_14.c \
+                    $(TOP)Tests/Paho_Interoperability_Testing/test_case_15.c
 CFLAGS			= -fPIC -Wall -std=c99 -fno-strict-aliasing \
 					$(INCLUDES) -O2 $(GCC_CFLAGS) $(DEBUG) -DPLATFORM_LINUX
 else
@@ -44,7 +47,8 @@ endif
 OBJS_M			= client_test_suite.o wrapper.o \
 					test_case_1.o test_case_2.o test_case_3.o test_case_4.o \
 					test_case_5.o test_case_6.o test_case_7.o test_case_8.o \
-					test_case_9.o test_case_10.o test_case_11.o test_case_12.o
+					test_case_9.o test_case_10.o test_case_11.o test_case_12.o \
+					test_case_13.o test_case_14.o test_case_15.o
 
 MAKEFILE 		= Makefile
 

@@ -45,6 +45,17 @@ static uint8_t const*           PublishMessage  =   (uint8_t*)"Client 6823e68d-8
 **  Interface
 **************************************************************/
 
+/* 
+    Test Case 11 :  
+    1.Close the TCP/IP network (Disconnect with MQTT broker abnormally)
+    2.Stop the current MQTT Session.
+    3.Restart the TCP/IP network.
+    4.Start a new MQTT Session.
+    5.Subscribe the will message topic of the stopped session before.
+    6.Receive response(CONNACK message) from broker and correctly judge the connect result is OK. 
+    7.Receive the will message of the stopped session before and correctly get the message conetent.
+*/
+
 extern int32_t TestCase_011(S_USER_DATA* Ctx)
 {
     int32_t             Err =   D_MQC_RET_OK;

@@ -44,7 +44,12 @@ static uint8_t const*   PublishTopic    =  (uint8_t*)"test/not_exist";
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 8 :  
+    1.Unsubscribe a not exist topic with MQTT broker.
+    2.Receive response(UNSUBACK message) from broker and correctly judge the Unsubscribe result is OK.   
+*/
+
 extern int32_t TestCase_008(S_USER_DATA* Ctx)
 {
     int32_t             Err =   D_MQC_RET_OK;

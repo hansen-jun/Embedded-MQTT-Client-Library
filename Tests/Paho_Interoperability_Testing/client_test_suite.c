@@ -73,7 +73,10 @@ static const S_TEST_CASE        TestCase[]      =
     {   TestCase_009,   TestCase_009_OpenResetFuncCB    ,   NULL                                ,   NULL                                ,   NULL                            ,   NULL                                },
     {   TestCase_010,   TestCase_010_OpenResetFuncCB    ,   NULL                                ,   NULL                                ,   NULL                            ,   TestCase_010_PublishResponseFunc    },
     {   TestCase_011,   TestCase_011_OpenResetFuncCB    ,   TestCase_011_ReadNotify_callback    ,   TestCase_011_SubscribeResponseFunc  ,   NULL                            ,   NULL                                },
-    {   TestCase_012,   NULL                            ,   NULL                                ,   NULL                                ,   NULL                            ,   NULL                                }
+    {   TestCase_012,   TestCase_012_OpenResetFuncCB    ,   NULL                                ,   NULL                                ,   NULL                            ,   NULL                                },
+    {   TestCase_013,   NULL                            ,   NULL                                ,   TestCase_013_SubscribeResponseFunc  ,   NULL                            ,   NULL                                },
+    {   TestCase_014,   NULL                            ,   NULL                                ,   NULL                                ,   NULL                            ,   TestCase_014_PublishResponseFunc    },
+    {   TestCase_015,   NULL                            ,   NULL                                ,   NULL                                ,   NULL                            ,   NULL                                },
 };
 
 /**************************************************************

@@ -32,6 +32,9 @@
  * @version     00.00.03 
  *              - 2018/12/14 : zhaozhenge@outlook.com 
  *                  -# Improvement for the exception case logic
+ * @version     00.00.04 
+ *              - 2018/12/18 : zhaozhenge@outlook.com 
+ *                  -# Set message content to NULL, when message length is 0
  */
 
 /**************************************************************
@@ -670,7 +673,7 @@ static int32_t prvMQC_UnsubscribeMessageEncode(uint8_t* Dst, size_t* Dstlen, uin
  * @retval              -1                      Destination buffer too small
  * @note                Input \a *Dstlen = 0 to obtain the required buffer size in \a *Dstlen
  * @author              zhaozhenge@outlook.com
- * @date                2018/11/21
+ * @date                2018/12/18
  * @callgraph
  * @callergraph
  */
@@ -746,8 +749,8 @@ static int32_t prvMQC_PublishMessageEncode(uint8_t* Dst, size_t* Dstlen, uint16_
     memcpy(EndPtr, Message->Content, Message->Length);
     if(ExtData)
     {
-        ExtData->Message.Content = EndPtr;
         ExtData->Message.Length = Message->Length;
+        ExtData->Message.Content = (Message->Length) ? EndPtr : NULL;
     }
     *Dstlen = WriteDataSize;
     return (0);  
@@ -1608,7 +1611,7 @@ static int32_t prvMQC_CorePublish_withQoS(S_MQC_SESSION_HANDLE* MQCHandler, S_MQ
             break;
         }
         
-        /* Encode UNSUBSCRIBE Message data */
+        /* Encode Publish Message data */
         Ret = prvMQC_PublishMessageEncode( WriteData, &WriteDataSize, MQCHandler->SessionCtx.MessageQueue.PacketIdentifier, Message, false, QoS, Retain, &(PacketCtx->ExtData.Publish) );
         if(Ret)
         {
@@ -2268,7 +2271,7 @@ static int32_t prvMQC_processConnack(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t F
  * @retval              D_MQC_RET_UNEXPECTED_ERROR
  * @retval              D_MQC_RET_CALLBACK_ERROR
  * @author              zhaozhenge@outlook.com
- * @date                2018/12/03
+ * @date                2018/12/18
  * @callgraph
  * @callergraph
  */
@@ -2322,6 +2325,10 @@ static int32_t prvMQC_processPublish(S_MQC_SESSION_HANDLE* MQCHandler, uint8_t F
                 PacketIdentifier = MQC_ntohs(*((uint16_t*)Data));
                 DataSize = DataSize - sizeof(uint16_t);
                 Data = Data + sizeof(uint16_t);
+            }
+            /* QoS2 */
+            if(E_MQC_QOS_2 == QoS)
+            {
                 /* Search message in the queue */
                 if(MQC_MsgQueue_search(&(MQCHandler->SessionCtx.MessageQueue), PacketIdentifier, E_MQC_MSG_PUBREC))
                 {

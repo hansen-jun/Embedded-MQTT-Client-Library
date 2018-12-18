@@ -19,7 +19,7 @@
 **  Mbed MQTT Client Library with C
 **************************************************************/
 /** 
- * @example     test_case_7.c
+ * @example     test_case_15.c
  * @brief       Client test case for Paho MQTT Conformance/Interoperability Testing.
  * @author      zhaozhenge@outlook.com
  *
@@ -42,53 +42,29 @@
 **  Interface
 **************************************************************/
 
-/* 
-    Test Case 7 :  
-    1.When do not send/receive any message with MQTT broker, confirm library will send a ping request (PINGREQ message) every KeepAliveInterval spontaneously.
-    2.Receive response(PINGRESP message) from broker and correctly notify application.   
-*/
-
-extern int32_t TestCase_007(S_USER_DATA* Ctx)
+extern int32_t TestCase_015(S_USER_DATA* Ctx)
 {
+    int32_t             Err =   D_MQC_RET_OK;
     int32_t             Ret =   0;
     
     D_MQC_PRINT( " [test_case_%03d]\n", Ctx->CaseNo + 1);
     
     do
     {
-        Ctx->ConfirmFlag =  0x00;         
-    }while(0);
-    
-    return Ret;
-}
-
-extern int32_t TestCase_007_ReadNotify_callback(S_USER_DATA* Ctx, E_MQC_MSG_TYPE Type, S_MQC_MESSAGE_INFO* Info, bool* Complete)
-{
-    int32_t Ret =   0;
-    
-    do
-    {
-        if(E_MQC_MSG_PINGRESP != Type)
+        /* Session Top */
+        Err = MQC_Stop( Ctx->Handler );
+        if( D_MQC_RET_OK != Err)
         {
-            D_MQC_PRINT( " failed\n  ! Unknown Message Type %d\n\n", Type );
+            D_MQC_PRINT( " failed\n  ! MQC_Stop() returned %d\n\n", Err );
             Ret = -1;
             break;
         }
         
-        Ctx->ConfirmFlag++;
+        Ctx->Running = false;
         
-        if(2 == Ctx->ConfirmFlag)
-        {
-            *Complete = true;
-            D_MQC_PRINT( " [test_case_%03d][retCode=%d]\n", Ctx->CaseNo+1, Ret);
-        }
-        else
-        { 
-            *Complete = false;
-        }
+        D_MQC_PRINT( " [test_case_%03d][retCode=%d]\n", Ctx->CaseNo + 1, Ret);
         
     }while(0);
     
     return Ret;
 }
-

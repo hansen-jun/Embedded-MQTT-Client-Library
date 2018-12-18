@@ -113,3 +113,9 @@ extern int32_t TestCase_011_OpenResetFuncCB(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RES
 extern int32_t TestCase_011_ReadNotify_callback(S_USER_DATA* Ctx, E_MQC_MSG_TYPE Type, S_MQC_MESSAGE_INFO* Info, bool* Complete);
 extern int32_t TestCase_011_SubscribeResponseFunc( S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, S_MQC_UTF8_DATA* TopicFilterList, E_MQC_RETURN_CODE* SrvRetCodeList, uint32_t ListNum, bool* Complete);
 extern int32_t TestCase_012(S_USER_DATA* Ctx);
+extern int32_t TestCase_012_OpenResetFuncCB(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, uint8_t SrvResCode, bool SessionPresent, bool* Complete);
+extern int32_t TestCase_013(S_USER_DATA* Ctx);
+extern int32_t TestCase_013_SubscribeResponseFunc(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, S_MQC_UTF8_DATA* TopicFilterList, E_MQC_RETURN_CODE* SrvRetCodeList, uint32_t ListNum, bool* Complete);
+extern int32_t TestCase_014(S_USER_DATA* Ctx);
+extern int32_t TestCase_014_PublishResponseFunc(S_USER_DATA* Ctx, E_MQC_BEHAVIOR_RESULT Result, S_MQC_MESSAGE_INFO* Message, bool* Complete);
+extern int32_t TestCase_015(S_USER_DATA* Ctx);

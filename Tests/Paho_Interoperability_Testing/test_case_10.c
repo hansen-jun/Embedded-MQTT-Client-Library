@@ -45,7 +45,18 @@ static uint8_t const*           PublishMessage  =   (uint8_t*)"This is a test me
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 10 :  
+    1.Publish a QoS2 message to MQTT broker with retain flag On.
+    2.Disconnect with MQTT broker (DISCONNECT message).
+    3.Close the TCP/IP network.
+    4.Restart the TCP/IP network.
+    5.Connect with MQTT broker again with CleanSession Off.
+    6.Confirm the publish sequence is OK.
+    7.Receive response(CONNACK message) from broker and correctly judge the connect result is OK.
+    8.Confirm the library will continue the message publish sequence before disconnect with MQTT broker.
+*/
+
 extern int32_t TestCase_010(S_USER_DATA* Ctx)
 {
     int32_t             Err =   D_MQC_RET_OK;

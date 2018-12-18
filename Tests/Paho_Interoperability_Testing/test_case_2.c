@@ -49,7 +49,12 @@ static uint8_t const*   PublishTopic[]  =
 **  Interface
 **************************************************************/
 
-/* Connect with server */
+/* 
+    Test Case 2 :  
+    1.Subscribe 3 topics in one message(SUBSCRIBE message) with MQTT broker.
+    2.Receive response(SUBACK message) from broker and correctly judge the Subscribe result is OK.   
+*/
+
 extern int32_t TestCase_002(S_USER_DATA* Ctx)
 {
     int32_t             Err =   D_MQC_RET_OK;

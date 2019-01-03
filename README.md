@@ -1,6 +1,7 @@
 # Embedded-MQTT-Client-Library
 
 [![Build Status](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library.svg?branch=master)](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/72dc2efaf7334dfa8a3783159f8b7869)](https://www.codacy.com/app/otakann/Embedded-Websocket-Client-Library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=otakann/Embedded-Websocket-Client-Library&amp;utm_campaign=Badge_Grade)
 
 # What is this?
 An Embedded MQTT Client Library with C Language

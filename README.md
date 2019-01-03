@@ -1,5 +1,7 @@
 # Embedded-MQTT-Client-Library
 
+[![Build Status](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library.svg?branch=master)](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library)
+
 # What is this?
 An Embedded MQTT Client Library with C Language
 

@@ -3,20 +3,20 @@
 [![Build Status](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library.svg?branch=master)](https://travis-ci.com/otakann/Embedded-MQTT-Client-Library)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/4391203ee05e479d9cefa372f8767e26)](https://www.codacy.com/app/otakann/Embedded-MQTT-Client-Library?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=otakann/Embedded-MQTT-Client-Library&amp;utm_campaign=Badge_Grade)
 
-# What is this?
+## What is this
 An Embedded MQTT Client Library with C Language
 
-# Features
-* Strictly follow [MQTT v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html).
-* Support QoS0 QoS1 and QoS2.
-* Almost no dependencies except libc and easily transplanted.
-* No need an operating system.
-* Friendly Interface for embedded network stack and TLS library.
+## Features
+*  Strictly follow [MQTT v3.1.1](http://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/mqtt-v3.1.1-os.html).
+*  Support QoS0 QoS1 and QoS2.
+*  Almost no dependencies except libc and easily transplanted.
+*  No need an operating system.
+*  Friendly Interface for embedded network stack and TLS library.
 
-# Notice
+## Notice
 Compiler tool chain need support C99 
 
-# Compiling
+## Compiling
 There is no any other dependencies to Compile the library.  
 You only need two folders : "**CommonLib**" and "**MQTTClient**".
 1. Copy these two folders and add the .c files inside to your project.
@@ -27,8 +27,8 @@ You only need two folders : "**CommonLib**" and "**MQTTClient**".
 6. Then you can build the library.
 
 There are currently two active build systems used within the releases for a build example
-## CMake
-```
+### CMake
+``` cmake
 cd Project/CMake
 mkdir Build && cd Build
 cmake ..
@@ -36,32 +36,32 @@ make
 ```
 When the library is compiled, **libMqc.so/.a** and **libCCommon.so/.a** will be generated in the "Output/lib" folder  
 In order to use OS wrapper (ex. Linux), enter:  
-```
-cmake -DPLATFORM:STRING=LINUX ..
+``` cmake
+cmake -DPLATFORM=LINUX ..
 make
 ```
 In order to build sample program (ex. mini_client), enter: 
-```
-cmake -DPLATFORM:STRING=LINUX -DMINI_CLIENT=On ..
+``` cmake
+cmake -DPLATFORM=LINUX -DMINI_CLIENT=On ..
 make
 ```
-## Make
-```
+### Make
+``` sh
 cd Project/Make
 make
 ```
 When the library is compiled, **libMqc.so/.a** and **libCCommon.so/.a** will be generated in the "Output/lib" folder  
 In order to use OS wrapper (ex. Linux), enter:  
-```
+``` sh
 make PLATFORM=LINUX
 ```
 In order to build sample program (ex. mini_client), enter: 
-```
+``` sh
 make PLATFORM=LINUX mini_client
 ```
 
-# Example programs
+## Example programs
 There are example programs for some features and uses in Sample/. .  
 
-# License
+## License
 see [LICENSE](./LICENSE). (Apache2.0 LICENSE)
